@@ -63,7 +63,9 @@ V1 is deliberately narrow: a focused **payment-confirmation and attendee-status 
 - **Organizer** — The user who creates and manages Events and reviews payments. One Organizer account per Event in v1.
 - **Attendee** — A person who submits a Registration to an Event. May differ from the Payer.
 - **Registration** — One Attendee's request to attend one Event. Holds exactly one Status. Belongs to one Event.
-- **Payment Proof** — Evidence of a manual payment: a Transaction Reference (required for non-cash) plus an optional screenshot, with an optional declared Payer name.
+- **Payment Method** — A manual way to pay configured by the Organizer per Event (Vodafone Cash, InstaPay, bank transfer, cash, or other), with display instructions and a destination (number/handle/account) where applicable. An Event has one or more.
+- **Payment Proof** — Evidence of a manual payment: a Transaction Reference (required for non-cash, optional for cash) plus an optional screenshot, with an optional declared Payer name.
+- **Internal Note** — A free-text note the Organizer attaches to a Registration (e.g., on cash confirmation); visible to the Organizer only, never on the Status Page.
 - **Transaction Reference** — The Attendee-supplied identifier of a manual payment; the primary verifiable token. Expected unique per Event.
 - **Payer** — The person whose wallet/account sent the money; may differ from the Attendee (declared via Payer name).
 - **Status** — The single state of a Registration: `PENDING`, `UNDER_REVIEW`, `CONFIRMED`, `REJECTED`, `WAITLISTED`, `EXEMPT`, or `CANCELLED`.
@@ -90,6 +92,14 @@ The Organizer can create an Event with type (course/workshop/webinar/meetup/conf
 - Each Event has exactly one unique public registration link.
 - Unpublishing an Event stops new Registrations without deleting existing ones.
 
+#### FR-1b: Configure manual Payment Methods per Event
+For each Event, the Organizer can add one or more manual Payment Methods, each with its own instructions: Vodafone Cash number, InstaPay handle/phone, bank account details, cash payment instructions, or other manual method.
+
+**Consequences (testable):**
+- An Event can have one or more Payment Methods, each storing a method type plus display instructions and (where applicable) the destination number/handle/account.
+- The configured instructions for the Attendee's selected method are what appear on the Status Page during payment (FR-7).
+- Payment-method destination details are shown only to Attendees who are registering or completing payment — never publicly listed elsewhere.
+
 ### 4.2 Registration
 
 **Description:** An Attendee registers through the Event's public link with basic details and a chosen payment method, and immediately receives their personal Status Page link. Realizes UJ-2.
@@ -114,12 +124,21 @@ An Attendee can submit a Registration via the public form with required fields (
 An Attendee can select a payment method (Vodafone Cash, InstaPay, bank transfer, cash, or other manual), upload a screenshot, enter a Transaction Reference, and enter a Payer name if different from their own.
 
 **Consequences (testable):**
-- Transaction Reference is required for non-cash methods.
+- Transaction Reference is required for non-cash methods and **optional for the `cash` method**.
 - Submitting Payment Proof transitions the Registration from `PENDING` (or `REJECTED`) to `UNDER_REVIEW`.
 - A declared Payer name is stored and shown to the Organizer at review.
 
 **Out of Scope:**
 - Automatic verification of the payment with any bank/wallet (no gateway, no OCR).
+
+#### FR-3b: Cash-payment flow
+When the Attendee selects `cash`, the Registration stays `PENDING` (no proof step) until the Organizer confirms cash was received in person; the Organizer can then mark it `CONFIRMED` or `EXEMPT` from the dashboard and attach an internal note.
+
+**Consequences (testable):**
+- A `cash` Registration is not required to submit a Transaction Reference or screenshot and does not auto-enter `UNDER_REVIEW`.
+- From the dashboard the Organizer can move a `cash` Registration directly `PENDING → CONFIRMED` (or `EXEMPT`) and record an internal note (e.g., "Cash received at center," "Cash received by trainer," "Paid on-site").
+- The cash confirmation writes an Audit Log entry (FR-11), including the internal note when present.
+- Internal notes are visible to the Organizer only — never on the Attendee Status Page.
 
 ### 4.4 Status Model
 
@@ -171,6 +190,8 @@ An Attendee can open their unique Status Page (no login in v1) to see their curr
 
 **Consequences (testable):**
 - The page reflects the current Status for each of the seven states.
+- For a `PENDING` (non-cash) Registration, the page shows: the selected payment method, its configured payment instructions (FR-1b), the amount to pay, the Transaction Reference field (if required for the method), the Payment Proof upload field, and the "Payer name if different" field.
+- For a `PENDING` `cash` Registration, the page shows the cash payment instructions and that confirmation happens in person (no proof/reference fields required).
 - A `REJECTED` Registration shows the reason and re-opens the proof form (→ `UNDER_REVIEW` on resubmit).
 - Status Page links are unguessable (random tokens) and never expose another Attendee's Registration.
 
@@ -298,8 +319,9 @@ The Organizer signs in with an email-and-password account to access event creati
 ### 6.1 In Scope
 
 - Event creation with type, schedule, Capacity, price, Event Link, and a public registration link (FR-1).
+- Per-Event configuration of one or more manual Payment Methods with instructions (FR-1b).
 - Public registration with required name/phone/email + per-Event optional fields + payment-method selection (FR-2).
-- Manual Payment Proof: method, screenshot, required Transaction Reference, declared Payer name (FR-3).
+- Manual Payment Proof: method, screenshot, Transaction Reference (optional for cash), declared Payer name (FR-3); in-person cash confirmation with Internal Note (FR-3b).
 - Single flat Status model with constrained transitions (FR-4).
 - Organizer Review Queue with full detail + Approve/Reject-with-reason/Waitlist/Mark Exempt/Cancel/Reopen (FR-5).
 - Advisory Auto Flags (FR-6).
@@ -340,13 +362,17 @@ The Organizer signs in with an email-and-password account to access event creati
 - **SM-C1: Review speed vs. accuracy** — do not push reconciliation time down by encouraging blind bulk-approval; wrongful confirmations (later cancelled for non-payment) must stay low. Counterbalances SM-1.
 - **SM-C2: Automation vs. trust** — do not auto-confirm to cut "Am I confirmed?" volume; every `CONFIRMED` must trace to an Organizer decision in the Audit Log. Counterbalances SM-2.
 
+## 7a. Monetization (out of v1 build)
+
+No billing system, payment-gateway billing, or automated plan management ships in v1 — monetization is validated **manually** and lives outside product implementation for now. Intended path, in order: (1) free pilot for the first few Organizers; (2) paid per-Event or per-confirmed-Attendee; (3) subscription tiers for trainers and training centers; (4) certificates as a paid add-on (v2); (5) WhatsApp automation as a premium feature (v2); (6) payment-gateway monetization (v3).
+
 ## 8. Open Questions
 
-1. **Cash payments** — for the `cash` method, is a Transaction Reference truly optional, and how does the Organizer mark it received?
-2. **Payment details display** — where/how does the Organizer configure the wallet/bank details an Attendee sees per method?
-3. **Monetization model** — per-confirmed-attendee fee vs. subscription vs. paid add-ons — still to validate (kept out of v1 build).
+*All v1 open questions resolved.* Remaining items below are deferred-by-design (not gaps in v1):
 
-*Resolved this session:* capacity accounting → only `CONFIRMED`/`EXEMPT` hold seats (FR-10); group approval → confirm all N at once (FR-13); Organizer auth → email + password (FR-15); localization → bilingual AR/EN, RTL-ready (§6.1).
+1. **Monetization model** — validated **manually** in v1 (not built). Suggested future path: free pilot for the first few Organizers → paid per-Event or per-confirmed-Attendee → subscription tiers for trainers/centers; certificates as a paid add-on (v2); WhatsApp automation as premium (v2); payment-gateway monetization (v3). See §7a.
+
+*Resolved this session:* capacity accounting → only `CONFIRMED`/`EXEMPT` hold seats (FR-10); group approval → confirm all N at once (FR-13); Organizer auth → email + password (FR-15); localization → bilingual AR/EN, RTL-ready (§6.1); cash payments → reference optional, in-person confirm with internal note (FR-3b); payment-details display → configured per Event, shown on `PENDING` Status Page (FR-1b, FR-7).
 
 ## 9. Assumptions Index
 
