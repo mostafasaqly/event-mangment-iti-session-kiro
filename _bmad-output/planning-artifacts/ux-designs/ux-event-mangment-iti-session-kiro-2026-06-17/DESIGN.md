@@ -1,7 +1,7 @@
 ---
 name: Event Management Platform
 status: final
-description: Clean, trustworthy payment-confirmation and attendee-status system for trainers in the Egypt/Arab market. Angular + Angular Material (Material Design 3). This DESIGN.md specifies the brand-layer delta on top of MD3 defaults. Bilingual AR/EN, full RTL.
+description: Clean, trustworthy payment-confirmation and attendee-status system for trainers in the Egypt/Arab market. Angular + Angular Material (Material Design 3); brand-layer delta on top of MD3. Bilingual AR/EN, full RTL. Includes a per-screen Screen Catalog ready to drive Google Stitch generation for every page.
 sources:
   - "{planning_artifacts}/prds/prd-event-mangment-iti-session-kiro-2026-06-17/prd.md"
   - "{output_folder}/brainstorming/brainstorming-session-2026-06-17-1150.md"
@@ -235,3 +235,37 @@ Each maps to an Angular Material component; we set only the brand delta. Behavio
 | Treat the Event Link as an earned green reward | Show a plain link, or reveal it in any non-confirmed state |
 | Make the cleared review queue a green success moment | Show a sad/empty placeholder when the queue is done |
 | Pair every status color with a text label | Rely on status color alone |
+
+## Screen Catalog (for Google Stitch generation)
+
+Every page to generate, with its purpose, MD3 layout, key components, and the states to produce. Apply the brand spec above to all of them: trust-blue `primary`, the seven-status `mat-chip` system, mono for references/amounts, MD3 elevation, tightened shape scale, and **bilingual AR/EN with full RTL** (generate an Arabic RTL variant of each screen, or note RTL mirroring). Two surfaces: **Organizer** (desktop-first, `mat-sidenav` shell) and **Attendee** (mobile-first, single ~520px column, no nav chrome).
+
+### Global shells
+- **Organizer shell** — `mat-toolbar` top bar (app name, language toggle EN/ع, organizer avatar menu) + persistent left `mat-sidenav` (Events, current-event sub-nav: Dashboard · Review Queue [badge count] · Registrations · Settings). Collapses to a drawer below the Medium breakpoint. Content area on `background`.
+- **Attendee shell** — no nav. Centered column on `background`, a slim header (event name + language toggle), generous vertical rhythm. Phone-first.
+
+### Organizer screens (desktop-first)
+
+| # | Screen | Purpose | MD3 layout & key components | States to generate |
+|---|---|---|---|---|
+| O1 | **Login** | Email + password sign-in (FR-15) | Centered `mat-card`, two `mat-form-field` (outline), filled primary button, language toggle | default · error ("Email or password is incorrect") · loading |
+| O2 | **Events list** | All the organizer's events with at-a-glance counts | `mat-toolbar` + grid/list of event `mat-card`s, each with title, type chip, date, and count chips (confirmed/pending/waitlisted), "+ New Event" FAB | populated · **empty** ("No events yet…" + primary) · loading skeleton |
+| O3 | **Create / Edit Event** | Event details + capacity + price + Event Link + payment methods (FR-1, FR-1b) | Form on `mat-card`: type `mat-select`, title/description, date/time pickers, capacity, price, event-link field; **repeatable Payment-Method rows** (method `mat-select` + instructions + destination, each with its method dot) + "Add method" | create (empty) · edit (filled) · validation error |
+| O4 | **Event dashboard** | One event's home: summary + entry points | Summary count cards (confirmed/pending/under-review/waitlisted as status-colored stat cards), quick-link buttons to Review Queue & Registrations | populated · early (mostly zeros) |
+| O5 | **Review Queue** ★hero | Work `UNDER_REVIEW` payments fast (FR-5, FR-6) | Stack/grid of **review `mat-card`s**: registrant + contact, payer-name (both shown if different), **amount-pair** (expected vs declared, mono), **reference** (mono), screenshot thumbnail, **auto-flag chips** (amber/red), action row (Approve / Reject / Waitlist / Exempt / Cancel) | queue with items · card with amber **amount-mismatch** flag · card with red **duplicate-reference** flag · **group card** ("3 attendees on one payment") · **empty = green "All caught up"** success · loading skeleton |
+| O6 | **Reject dialog** | Capture a reason on reject/cancel | MD3 `mat-dialog`: reason `mat-select` (wrong amount / unclear screenshot / no payment found / duplicate) + optional note, error-toned confirm button | default · custom-reason typed |
+| O7 | **Registrations table** | The Excel-killer: search/filter/export (FR-12) | `mat-table` columns: name, contact, method (with dot), **status chip**, amount, reference (mono), date; search field, status `mat-chip` filter row, **Export** button | populated · **filtered-to-zero** · **search no-match** · **empty** ("No one's registered yet…" + copy-link) · loading |
+| O8 | **Registration detail** | Full record + actions + history (FR-11) | Two-pane on desktop: left = attendee + payment proof (screenshot, amount-pair, reference) + action row; right = **audit-log list** (actor · time · old→new status · reason) + **internal-note** block (FR-3b) | confirmed · rejected (reason shown) · waitlisted · exempt · cancelled · **cash** (mark-confirmed + add internal note) |
+| O9 | **Settings** | Account, language, message templates | `mat-card` sections: account, default language, editable **email & WhatsApp templates** | default |
+
+### Attendee screens (mobile-first, no login)
+
+| # | Screen | Purpose | MD3 layout & key components | States to generate |
+|---|---|---|---|---|
+| A1 | **Registration form** | Register for the event (FR-2) | Single column: event summary card, `mat-form-field`s (name/phone/email + optional), **payment-method `mat-select`** (each option with its method dot), filled primary "Register" | default · validation error · capacity-full notice (will be waitlisted) |
+| A2 | **Registration confirmation** | "You're registered — check your email" | Centered success block + direct link to Status Page | default |
+| A3 | **Status Page** ★hero | The "Am I confirmed?" killer — one screen, seven states (FR-7, FR-8) | Big `display-small` verdict headline + status chip; content swaps per state | **PENDING (non-cash):** payment-method card (instructions + destination + copy), amount, reference field (mono), screenshot upload, payer-name field, submit · **PENDING (cash):** cash instructions, "spot held" · **UNDER_REVIEW:** "Payment received — reviewing" · **CONFIRMED:** 🎉 + **event-link reward** (green) + add-to-calendar · **EXEMPT:** "confirmed as guest" + link · **REJECTED:** reason + re-opened upload · **WAITLISTED:** "#N on waitlist" · **CANCELLED:** terminal |
+| A4 | **Payment submission** | Submit proof from PENDING (FR-3) | Payment-method card (with copy buttons), mono reference input + helper, screenshot uploader (thumbnail/replace), payer-name-if-different, submit | empty · filled · upload error · submitting |
+
+### Cross-cutting states to render for every screen
+Generate, where applicable: **empty**, **loading** (MD3 skeleton/progress), **error** (calm inline copy), **success** (toast/`mat-snack-bar` confirmation), and the **Arabic RTL** mirror. Status colors, mono treatment, and the gated event-link rule are invariant across all of them.
