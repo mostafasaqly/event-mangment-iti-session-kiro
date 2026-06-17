@@ -4,6 +4,7 @@ status: final
 description: Clean, trustworthy payment-confirmation and attendee-status system for trainers in the Egypt/Arab market. Angular + SCSS, custom token system (no component library). Bilingual AR/EN, full RTL.
 sources:
   - "{planning_artifacts}/prds/prd-event-mangment-iti-session-kiro-2026-06-17/prd.md"
+  - "{output_folder}/brainstorming/brainstorming-session-2026-06-17-1150.md"
 updated: 2026-06-17
 colors:
   # Full token set — Angular + SCSS, no library inheritance. Light theme primary; dark deferred to v2.
@@ -37,6 +38,17 @@ colors:
   destructive-foreground: '#FFFFFF'
   success: '#1E8E5A'
   warning: '#B7791F'
+  # Money emphasis — the amount the organizer verifies against proof. Match = neutral; mismatch = warning.
+  amount-foreground: '#1A2330'
+  amount-match: '#1E8E5A'
+  amount-mismatch: '#B7791F'
+  # Payment-method identity accents (FR-1b). Used ONLY as a small method dot/icon tint so the
+  # organizer recognizes the rail at a glance in the queue — never as surface or status color.
+  method-vodafone: '#E60000'      # Vodafone Cash red
+  method-instapay: '#5C2D91'      # InstaPay purple
+  method-bank: '#2B5797'          # bank transfer blue-gray
+  method-cash: '#1E8E5A'          # cash green
+  method-other: '#5B6675'         # other manual — neutral
 typography:
   # Bilingual ramp: Latin + Arabic faces. Body face must carry Arabic glyphs cleanly.
   font-family-base: "'Inter', 'IBM Plex Sans Arabic', system-ui, sans-serif"
@@ -114,6 +126,26 @@ components:
     border: '{colors.border}'
     radius: '{rounded.md}'
     focusRing: '{colors.ring}'
+  amount-pair:
+    # "expected vs. declared" — the money the organizer checks against the screenshot.
+    foreground: '{colors.amount-foreground}'
+    match: '{colors.amount-match}'
+    mismatch: '{colors.amount-mismatch}'
+    font: '{typography.mono}'      # amounts in mono too — align decimals, compare fast
+  method-dot:
+    radius: '{rounded.pill}'
+    # tint bound per method from method-* tokens; size ~8px, paired with the method label
+  event-link-reward:
+    # The gated Event Link, revealed only on CONFIRMED/EXEMPT (FR-8). Visually a "reward."
+    background: '{colors.status-confirmed-bg}'
+    foreground: '{colors.status-confirmed}'
+    border: '{colors.status-confirmed}'
+    radius: '{rounded.lg}'
+  internal-note:
+    # Organizer-only note (FR-3b), e.g. "Cash received at center". Never shown to attendee.
+    background: '{colors.muted}'
+    foreground: '{colors.muted-foreground}'
+    radius: '{rounded.sm}'
 ---
 
 ## Brand & Style
@@ -134,8 +166,10 @@ Two audiences, one identity. The **organizer dashboard** is dense, scannable, de
   - **Exempt** purple — VIP/free, confirmed without payment.
   - **Cancelled** faded gray — terminal, de-emphasized.
 - **Neutrals** — cool grays on a near-white `#F7F8FA` background with white surfaces. The dashboard lives in neutrals so the status colors carry all the signal.
+- **Payment-method accents** — each manual method (FR-1b) has a recognizable brand tint (Vodafone Cash red, InstaPay purple, bank blue-gray, cash green, other neutral). These appear **only** as a small method dot/icon beside the method label, so an organizer scanning the queue recognizes the rail instantly. They are never surface, status, or chrome colors — they live at dot-scale only.
+- **Amount emphasis** — the verified money (expected vs. declared) reads in mono and turns neutral when amounts match, warning-amber when they don't (FR-6 amount-mismatch flag). This is the one number the organizer checks against the screenshot, so it earns its own treatment.
 
-Avoid: using the brand blue for any status; multiple accent colors; gradients; colored chrome. Status color is sacred — never reuse a status hue for a non-status purpose. Dark theme is deferred to v2.
+Avoid: using the brand blue for any status; multiple accent colors in chrome; gradients; colored surfaces. Status color is sacred — never reuse a status hue for a non-status purpose. Method accents never leave dot-scale. Dark theme is deferred to v2.
 
 ## Typography
 
@@ -161,8 +195,12 @@ Rounded but not playful: `sm 6` inputs/badges-inline, `md 10` buttons/inputs, `l
 - **Review card** — the hero component (organizer). White `lg`-radius card, soft shadow, holds registrant + payer + amount + reference (mono) + screenshot thumbnail + flags + action row. Dense but breathable.
 - **Buttons** — primary (blue), secondary (outline), destructive (red, for Cancel/Reject confirmation). Action verbs only.
 - **Auto-flag chip** — small amber/red inline chip (warning vs. error tone) sitting on the review card; advisory, never blocks.
-- **Payment-method card** — attendee-facing, shows the method's instructions + destination (number/handle/account) with a copy button.
-- **Empty / error / success blocks** — centered, one display line + one body line + at most one action. Consistent across surfaces.
+- **Payment-method card** — attendee-facing, shows the method's instructions + destination (number/handle/account) with a copy button. Carries the method's identity dot ({components.method-dot}).
+- **Amount pair** ({components.amount-pair}) — "expected vs. declared," both in mono so decimals align; neutral when equal, amber when mismatched. The number the organizer verifies against the screenshot.
+- **Method dot** ({components.method-dot}) — ~8px pill tinted per payment rail, paired with the method label in the queue and on the payment-method card. Brand recognition at a glance; never grows beyond dot-scale.
+- **Event-link reward** ({components.event-link-reward}) — the gated Event Link, shown only on CONFIRMED/EXEMPT (FR-8). Styled as a soft-green reward block on the attendee Status Page and confirmation email — the visual payoff of being "in," distinct from a plain link.
+- **Internal note** ({components.internal-note}) — organizer-only muted block (FR-3b), e.g. "Cash received at center." Visually quiet; clearly internal; never rendered on the attendee surface.
+- **Empty / error / success blocks** — centered, one display line + one body line + at most one action. Consistent across surfaces. The "queue clear" empty state is success-toned (green check), not a sad empty state — for the organizer, an empty queue is the win.
 
 ## Do's and Don'ts
 
@@ -174,3 +212,7 @@ Rounded but not playful: `sm 6` inputs/badges-inline, `md 10` buttons/inputs, `l
 | Mirror every layout for RTL with logical properties | Hardcode left/right margins |
 | Keep the attendee surface calm and single-column | Port the dense dashboard layout to the attendee phone view |
 | Let whitespace and status color carry the signal | Add gradients, ornament, or chrome color |
+| Keep method accents at dot-scale next to the label | Tint a whole row/card with a method's brand color |
+| Render expected & declared amounts in mono, aligned | Bury the amount in body text where mismatches hide |
+| Treat the Event Link as a green "reward" only when earned | Show a plain link, or reveal it in any non-confirmed state |
+| Make the cleared review queue a green success moment | Show the organizer a sad/empty placeholder when the queue is done |
