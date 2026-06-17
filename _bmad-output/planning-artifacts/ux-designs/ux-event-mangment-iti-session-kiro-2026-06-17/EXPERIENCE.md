@@ -12,7 +12,7 @@ updated: 2026-06-17
 
 ## Foundation
 
-**Two responsive web surfaces, one app.** Built in **Angular + SCSS** with a custom component set (no third-party component library) — `DESIGN.md` defines the full token system the components consume. There is no native mobile app.
+**Two responsive web surfaces, one app.** Built in **Angular with Angular Material (Material Design 3)** — components inherit MD3 anatomy, ripple/state-layer interactions, and accessibility defaults; `DESIGN.md` specifies only the brand-layer delta (color roles, type families, shape scale, the seven-status custom color groups, and a few custom tokens). This spine specifies the behavioral delta on top of Material — only where the product needs more than MD3 gives by default. There is no native mobile app.
 
 - **Organizer surface** — desktop-first, authenticated (email + password, FR-15). Dense, scannable, keyboard-friendly; the Review Queue is the center of gravity. Degrades gracefully to mobile (a trainer checking payments on a phone).
 - **Attendee surface** — mobile-first, **no login**. Reached only via two unguessable token links: the public registration link (per Event) and the personal Status Page link (per Registration, FR-7). Calm, single-column, reassuring.
